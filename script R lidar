@@ -1,3 +1,67 @@
+#1. reading the point cloud
+#read LAS point cloud
+las<-readLAS("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/data/starting_data/las/las_area1.laz")
+las#plot the point cloud
+plot(las)#read only x,y,z
+
+las<-readLAS("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/data/starting_data/las/las_area1.laz",select = "xyz" )#read only first return
+las<-readLAS("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/data/starting_data/las/las_area1.laz",filter = "-keep_first" )  #-keep_last#check if the point cloud is fine
+las_check(las)#2 plot the point cloud
+
+plot(las, bg="white" )#if you have structrue from motion data you can plot in RGB
+plot(las, color="RGB")#plot specific information of the point cloud e.g. classification
+plot(las, color="Classification", bg="white", legend=TRUE )#plot intensity
+plot(las, color="Intensity", bg="white", legend=TRUE )#plot point cloud transect
+
+p1 <- c(679368, 5155974)
+p2 <- c(679468, 5156074)
+transect<-clip_transect(las, p1, p2, width = 5)
+
+library(ggplot2)
+
+library(viridis)
+ggplot(payload(transect), aes(X,Z, color=Z  ) )+
+  geom_point()+
+  theme_minimal()+
+  scale_color_viridis_c(option="viridis")#clip the las with the shapefile of a given polygon
+
+library(rgdal)
+library(sf)
+area_test<-st_read("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/data/starting_data/shp/area_shp_test.shp")
+
+plot(area_test)
+clipped_las<-clip_roi(las, area_test)
+plot(clipped_las)#clip my las with given gps point and given radius
+area_circle<-clip_circle(las, x=679368, y=5155974, radius = 50   )
+area_circle<-clip_circle(las, x=p1[1], y=p1[2], radius = 50   )
+plot(area_circle)#3. classification of the point cloud
+
+transect<-clip_transect(las, p1, p2, width = 5)
+ggplot(payload(transect), aes(X,Z, color=Classification  ) )+
+  geom_point()+
+  theme_minimal()+
+  scale_color_viridis_c(option="viridis")#classify point cloud, we use the function classify_ground ()
+
+classification1<-classify_ground(las, algorithm = pmf(ws=5, th=3) )
+
+transect<-clip_transect(classification1, p1, p2, width = 5)
+ggplot(payload(transect), aes(X,Z, color=Classification  ) )+
+  geom_point()+
+  theme_minimal()+
+  scale_color_viridis_c(option="viridis")
+
+
+ws<-seq(3, 12, 3)
+ws
+th<-seq(0.1, 2, length.out= length(ws))
+
+classification2<-classify_ground(las, algorithm = pmf(ws=ws, th=th) )
+transect<-clip_transect(classification2, p1, p2, width = 5)
+ggplot(payload(transect), aes(X,Z, color=Classification  ) )+
+  geom_point()+
+  theme_minimal()+
+  scale_color_viridis_c(option="viridis")
+
 
 
 
