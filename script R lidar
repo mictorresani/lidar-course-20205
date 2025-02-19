@@ -42,6 +42,8 @@ ggplot(payload(transect), aes(X,Z, color=Classification  ) )+
   theme_minimal()+
   scale_color_viridis_c(option="viridis")#classify point cloud, we use the function classify_ground ()
 
+
+#classificatipon
 classification1<-classify_ground(las, algorithm = pmf(ws=5, th=3) )
 
 transect<-clip_transect(classification1, p1, p2, width = 5)
@@ -61,6 +63,217 @@ ggplot(payload(transect), aes(X,Z, color=Classification  ) )+
   geom_point()+
   theme_minimal()+
   scale_color_viridis_c(option="viridis")
+
+
+
+library(RCSF)
+
+classification_csf<-classify_ground(las, algorithm = csf()) #based on Zang et al 2016. 
+transect<-clip_transect(classification_csf, p1, p2, width = 5) #we can change the transect width if needed
+ggplot(payload(transect), aes(X,Z, color=Classification  ) )+
+  geom_point()+
+  theme_minimal()+
+  scale_color_viridis_c(option="viridis")
+
+
+
+#show only the ground point sin 3D
+ground<-filter_ground(las)
+plot(ground, bg="white")
+
+
+
+
+
+
+
+##2. DTM creation
+#dtm_tin
+dtm_tin<-rasterize_terrain(las, res = 1, algorithm = tin()) #res is in meters, use classification_csf if yoo dont trust your original classification
+plot_dtm3d(dtm_tin)
+plot(dtm_tin)
+setwd("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/results/dtm")
+writeRaster(dtm_tin, "dtm_tin.tiff") #use the .tiff
+
+
+#dtm_idw
+dtm_idw<-rasterize_terrain(las, res = 1, algorithm = knnidw()) #res is in meters, use classification_csf if yoo dont trust your original classification
+plot_dtm3d(dtm_idw)
+plot(dtm_idw)
+setwd("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/results/dtm")
+writeRaster(dtm_idw, "dtm_idw.tiff") #use the .tiff
+
+
+#dtm_kriging no tuning
+dtm_kriging<-rasterize_terrain(las, res = 1, algorithm = kriging()) #res is in meters, use classification_csf if yoo dont trust your original classification
+plot_dtm3d(dtm_kriging)
+plot(dtm_kriging)
+setwd("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/results/dtm")
+writeRaster(dtm_idw, "dtm_idw.tiff") #use the .tiff
+
+#dtm_kriging k=10
+dtm_kriging_k10<-rasterize_terrain(las, res = 1, algorithm = kriging(k=10)) #res is in meters, use classification_csf if yoo dont trust your original classification
+plot_dtm3d(dtm_kriging_k10)
+
+#dtm_kriging k=150
+dtm_kriging_k150<-rasterize_terrain(las, res = 1, algorithm = kriging(k=150)) #res is in meters, use classification_csf if yoo dont trust your original classification
+plot_dtm3d(dtm_kriging_k150)
+
+#this function allows to create raster of slope and aspect 
+dtm_products<-terrain(dtm_tin, v=c("slope", "aspect"), unit="degree" )
+plot(dtm_products) #plot both
+plot(dtm_products$slope, main="slope")
+setwd("")
+writeRaster(dtm_products$slope, "C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/results/slope and aspect/Slope.tiff")
+
+
+
+#3.las normalization 
+
+#easy approach 
+nlas<-las-dtm_tin
+plot(nlas)
+
+transect<-clip_transect(nlas, p1, p2, width = 5) #we can change the transect width if needed
+ggplot(payload(transect), aes(X,Z, color=Classification  ) )+
+  geom_point()+
+  theme_minimal()+
+  scale_color_viridis_c(option="viridis")
+
+hist(filter_ground(nlas)$Z, breaks= seq(-20, 20, 0.1)  )
+
+min(nlas$Z)
+max(nlas$Z)
+
+
+
+nlas_right<-normalize_height(las, tin())
+plot(nlas_right)
+
+hist(filter_ground(nlas_right)$Z, breaks= seq(-20, 20, 0.1)  )
+hist(filter_ground(nlas_right)$Z, breaks= seq(-1, 1, 0.1)  )
+
+min(nlas_right$Z)
+max(nlas_right$Z)
+
+
+#final fiter
+nlas_filtered<-filter_poi(nlas_right, Z>=0, Z<=40 )
+plot(nlas_filtered)
+
+
+
+
+#DSM creation
+
+dsm<-rasterize_canopy(las, res=1, algorithm = p2r())
+dsm
+plot(dsm)
+
+chm<-rasterize_canopy(nlas_filtered, res=1, algorithm = p2r())
+plot(chm, main="chm_no filling")
+
+setwd("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/results/chm")
+writeRaster(chm, "chm_2m.tiff")
+
+#adding the filling option1
+chm_filled1<-rasterize_canopy(nlas_filtered, res=1, algorithm = p2r(subcircle = 0.2))
+plot(chm_filled1, main="chm_filled1")
+writeRaster(chm_filled1, "chm_filled1.tiff")
+
+#adding the filling option1
+chm_filled2<-rasterize_canopy(nlas_filtered, res=1, algorithm = p2r(subcircle = 0.2,na.fill = tin() )) #use 2 filling, one id based on subcircle and one on filling NA based on DTM algorithm
+plot(chm_filled2, main="chm_filled2")
+writeRaster(chm_filled2, "chm_filled2.tiff")
+
+
+
+
+#Tree detection and segmentation
+library(sf)
+tree_top<-locate_trees(las, lmf(ws=5))
+tree_top_nlas<-locate_trees(nlas_filtered, lmf(ws=5))
+
+plot(chm_filled2)
+plot(st_geometry(tree_top), add=TRUE, pch=3)
+
+
+tree_top_nlas<-locate_trees(nlas_filtered, lmf(ws=10))
+plot(chm_filled2)
+plot(st_geometry(tree_top_nlas), add=TRUE, pch=3)
+
+
+f <- function(x) {x * 0.1 + 3} #create a function that makes a mw that increase from 3 (whan height is 0) and increase of 0.1 for each meter. you can change the 0.1 and increas eto 0.2...
+heights <- seq(0,40,5)
+ws <- f(heights)
+plot(heights, ws, type = "l", ylim = c(0,6))
+
+
+tree_top_function<-locate_trees(nlas_filtered, lmf(f))
+plot(chm_filled2)
+plot(st_geometry(tree_top_function), add=TRUE, pch=3)
+
+
+
+
+
+
+#tree segmentation
+#algorithm that work with point cloud
+#dalponte2016
+algorithm<-dalponte2016(chm_filled2, tree_top_function)
+trees_segmented_dalponte<-segment_trees(nlas_filtered, algorithm)
+trees_segmented_dalponte
+plot(trees_segmented_dalponte, color="treeID")
+tree1<-filter_poi(trees_segmented, treeID==120)
+plot(tree1)
+
+
+algorithm2<-li2012()
+trees_segmented<-segment_trees(nlas_filtered, algorithm2)
+trees_segmented
+plot(trees_segmented, color="treeID")
+tree1<-filter_poi(trees_segmented, treeID==120)
+plot(tree1)
+
+
+crown_dalponte<-crown_metrics(trees_segmented_dalponte, func = .stdtreemetrics, geom = "convex") #you can use also concave
+plot(crown_dalponte["npoints"])
+plot(crown_dalponte["convhull_area"])
+
+
+#algorithm that work with CHM
+crown_dalponte_new<-crown_metrics(trees_segmented_dalponte, func = .stdmetrics_z, geom = "convex") #you can use also concave
+crown_dalponte_new
+
+#z: refers to the elevation
+#i: refers to the intensity
+#rn: refers to the return number
+#q: refers to quantile
+#a: refers to the ScanAngleRank or ScanAngle
+#n: refers to a number (a count)
+#p: refers to a percentage
+
+
+plot(crown_dalponte_new["zsd"])
+
+crown_dalponte_new<-crown_metrics(trees_segmented_dalponte, func = .stdmetrics_z) #you can use also concave
+crown_dalponte_new
+plot(crown_dalponte_new["zsd"])
+
+
+
+
+
+#cloud information at cloud level
+metric<-cloud_metrics(nlas_filtered,func = .stdmetrics_z )
+
+
+
+#cloud information at plot level wit a given point, or adding apolygon
+test_points<-st_read("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/data/starting_data/shp/punctual_plot.shp")
+metric_plot<-plot_metrics(nlas_filtered, func=.stdmetrics_z, radius=20, test_points) #set radius of your plot
+
 
 
 
