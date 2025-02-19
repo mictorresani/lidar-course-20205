@@ -314,3 +314,67 @@ opt_output_files(catalog)<-paste0("C:/Users/MicTorresani/OneDrive - Scientific N
 dtm_catalog<-rasterize_terrain(catalog, tin(), res=10)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#heterogeneity with rasterdiv
+library(rasterdiv)
+library(raster)
+library(raoQarea)
+
+chm_raster<-raster(chm)
+dtm_raster<-raster(dtm_kriging)
+lista_raster<-list(q,w)
+
+area_test<-shapefile("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/lezioni_e_tesi/Unibz/geomatia e telerilevamento/2022_2023_2024/lezioni/LAB/LiDAR esercitazione/DownloadService/area_shp_test.shp")
+
+#shannon
+shannon<-Shannon(chm_raster, window = 3)
+
+#single rao
+rao<-paRao(chm_raster, window = 3, method = "classic", simplify=0 )
+
+#plot_both_plots
+par(mfrow=c(1,2))
+plot(shannon$layer, col =col, main="Shannon")
+plot(rao$window.3$alpha.1, col =col, main="Rao Q")
+
+
+#single rao area, we get a number
+rao_area<- paRao(q, window = 3, method = "classic", simplify = 0, area = area_test, field = "id")
+
+
+#multi_rao
+rao_multi<-paRao(lista_raster, window = 3, method = "multidimension", simplify=0 )
+par(mfrow=c(1,2))
+plot(rao$window.3$alpha.1, col =col)
+plot(rao_multi$window.3$alpha.1, col =col)
+
+
+#multi_rao
+
+rao_multi_area<-paRao(lista_raster, window = 3, method = "multidimension", simplify=0, area = area_test, field = "id" )
+
