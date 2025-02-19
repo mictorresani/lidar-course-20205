@@ -280,3 +280,37 @@ metric_plot<-plot_metrics(nlas_filtered, func=.stdmetrics_z, radius=20, test_poi
 
 
 
+#get information at pixel leve
+
+metric_pixel<-pixel_metrics(nlas_filtered,func = .stdmetrics_z, 20 ) #compare to cloud_metric you have to add a numbe rthat is the size of the pizel
+plot(metric_pixel)
+writeRaster(metric_pixel$zmean, "pixel_metric_mean.tiff")
+
+
+
+
+#CV calculation 
+#first build up the function. CV= sd/mean
+cv<-function(z){coef_var<-sd(z)/mean(z)    }
+new_metric<-pixel_metrics(nlas_filtered, ~cv(z=Z), 10 )
+plot(new_metric)
+
+
+
+
+crown_dalponte_new<-crown_metrics(trees_segmented_dalponte, func = .stdmetrics_z, geom="convex") #you can use also concave
+crown_dalponte_new$volume<-0.05*(crown_dalponte_new$zmax^2.5)/100  #use with caution!!!! #Some sources suggest values between 0.03 and 0.07 depending on species.
+plot(crown_dalponte_new["volume"])
+
+
+
+
+
+catalog<-readLAScatalog("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/data/starting_data/las/area3_lascatalog/start")
+plot(catalog)
+
+
+opt_output_files(catalog)<-paste0("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/data/starting_data/las/", "{*}_classified")
+dtm_catalog<-rasterize_terrain(catalog, tin(), res=10)
+
+
