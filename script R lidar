@@ -421,3 +421,130 @@ plot_dtm3d(dtm_kriging_k10)
 dtm_kriging_k150<-rasterize_terrain(las, res = 1, algorithm = kriging(k=150)) #res is in meters, use classification_csf if yoo dont trust your original classification
 plot_dtm3d(dtm_kriging_k150)
 
+
+
+
+
+
+#this function allows to create raster of slope and aspect 
+dtm_products<-terrain(dtm_tin, v=c("slope", "aspect"), unit="degree" )
+plot(dtm_products) #plot both
+plot(dtm_products$slope, main="slope")
+setwd("")
+writeRaster(dtm_products$slope, "C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/results/slope and aspect/Slope.tiff")
+
+#exercise 5?
+#create a dtm using a tin() and knnidw() in the other study area (las_area2)
+#get slope and aspect 
+#save on your local computr the aspect and slope as .tiff
+
+
+
+
+#3.las normalization 
+#easy approach 
+nlas<-las-dtm_tin
+plot(nlas)
+
+p1 <- c(679368, 5155974)
+p2 <- c(679468, 5156074)
+
+transect<-clip_transect(nlas, p1, p2, width = 5) #we can change the transect width if needed
+ggplot(payload(transect), aes(X,Z, color=Z  ) )+
+  geom_point()+
+  theme_minimal()+
+  scale_color_viridis_c(option="viridis")
+
+hist(filter_ground(nlas)$Z, breaks= seq(-15, 15, 0.1)  )
+
+min(nlas$Z)
+max(nlas$Z)
+
+
+#right approach
+nlas_right<-normalize_height(las, tin())
+plot(nlas_right)
+
+hist(filter_ground(nlas_right)$Z, breaks= seq(-20, 20, 0.1)  )
+hist(filter_ground(nlas_right)$Z, breaks= seq(-1, 1, 0.1)  )
+
+min(nlas_right$Z)
+max(nlas_right$Z)
+
+
+#final fiter
+nlas_right_filtered<-filter_poi(nlas_right, Z>=0, Z<=40 )
+plot(nlas_filtered)
+
+
+
+#exercise 6
+#normalize the las2 using the tin() algorithm. 
+#filter the points as done before. 
+
+
+
+#DSM creation
+dsm<-rasterize_canopy(las, res=1, algorithm = dsmtin()) #you can use also the p2r()
+dsm
+plot(dsm)
+
+chm<-rasterize_canopy(nlas_filtered, res=1, algorithm = dsmtin())
+plot(chm, main="chm_no filling")
+
+setwd("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/results/chm")
+writeRaster(chm, "chm_2m.tiff")
+
+#adding the filling option1 only using the p2r
+chm_filled1<-rasterize_canopy(nlas_filtered, res=1, algorithm = p2r(subcircle = 0.2))
+plot(chm_filled1, main="chm_filled1")
+writeRaster(chm_filled1, "chm_filled1.tiff")
+
+#adding the filling option1
+chm_filled2<-rasterize_canopy(nlas_filtered, res=1, algorithm = p2r(subcircle = 0.2,na.fill = tin() )) #use 2 filling, one id based on subcircle and one on filling NA based on DTM algorithm
+plot(chm_filled2, main="chm_filled2")
+setwd("C:/Users/MicTorresani/Documents/dati_lidar_phisalia")
+writeRaster(chm_filled2, "chm_filled2.tiff")
+
+
+#exercise 7
+#create a 2 new CHM with the area2 with a spatial resolution of 2m. one using the dsmtin() and the other using the p2r(subcircle = 0.2,na.fill = tin() )
+
+
+
+
+#Tree detection and segmentation
+library(sf)
+tree_top<-locate_trees(las, lmf(ws=5))
+st_write(tree_top, "tree_top.shp", layer_options = "SHPT=POINTZ")
+tree_top_nlas5<-locate_trees(nlas_filtered, lmf(ws=5))
+st_write(tree_top_nlas5, "tree_top_nlas5.shp", delete_layer = TRUE, layer_options = "SHPT=POINTZ")
+
+plot(chm_filled2)
+plot(st_geometry(tree_top_nlas), add=TRUE, pch=3)
+
+
+tree_top_nlas10<-locate_trees(nlas_filtered, lmf(ws=10))
+plot(chm_filled2)
+plot(st_geometry(tree_top_nlas10), add=TRUE, pch=3)
+
+
+f <- function(x) {x * 0.1 + 3} #create a function that makes a mw that increase from 3 (whan height is 0) and increase of 0.1 for each meter. you can change the 0.1 and increas eto 0.2...
+heights <- seq(0,40,5)
+ws <- f(heights)
+plot(heights, ws, type = "l", ylim = c(0,6))
+
+
+tree_top_function_right<-locate_trees(nlas_filtered, lmf(f))
+st_write(tree_top_function_right, "tree_top_function.shp", delete_layer = TRUE, layer_options = "SHPT=POINTZ")
+plot(chm_filled2)
+plot(st_geometry(tree_top_function), add=TRUE, pch=3)
+
+
+#exercise 8
+#load the area2
+#create a nlas_filtered (with filter 0, 45) in the area 2
+#locate trees using  the f function setting height seq(0,45,5)
+
+
+
