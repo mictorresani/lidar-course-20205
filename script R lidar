@@ -378,3 +378,46 @@ plot(rao_multi$window.3$alpha.1, col =col)
 
 rao_multi_area<-paRao(lista_raster, window = 3, method = "multidimension", simplify=0, area = area_test, field = "id" )
 
+
+
+
+
+##2. DTM creation
+
+#show only the ground point in 3D
+ground<-filter_ground(las)
+plot(ground, bg="white")
+
+#dtm_tin
+dtm_tin<-rasterize_terrain(las, res = 1, algorithm = tin()) #res is in meters, use classification_csf if yoo dont trust your original classification
+plot_dtm3d(dtm_tin, bg="white")
+library(rgl) #to create the title
+title3d(main = "DTM TIN", color = "black", line = 2)
+plot(dtm_tin)
+setwd("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/results/dtm")
+writeRaster(dtm_tin, "dtm_tin.tiff") #use the .tiff
+
+
+#dtm_idw
+dtm_idw<-rasterize_terrain(las, res = 1, algorithm = knnidw()) #res is in meters, use classification_csf if yoo dont trust your original classification
+plot_dtm3d(dtm_idw, bg="white")
+title3d(main = "DTM IDW", color = "black", line = 2)
+plot(dtm_idw)
+setwd("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/results/dtm")
+writeRaster(dtm_idw, "dtm_idw.tiff") #use the .tiff
+
+
+#dtm_kriging no tuning
+dtm_kriging<-rasterize_terrain(las, res = 1, algorithm = kriging()) #res is in meters, use classification_csf if yoo dont trust your original classification
+plot_dtm3d(dtm_kriging, bg="white")
+title3d(main = "DTM KRIGING", color = "black", line = 2)
+plot(dtm_kriging)
+setwd("C:/Users/MicTorresani/OneDrive - Scientific Network South Tyrol/varie/corsi/physalia/LiDAR 2025/results/dtm")
+writeRaster(dtm_idw, "dtm_idw.tiff") #use the .tiff
+#dtm_kriging k=10
+dtm_kriging_k10<-rasterize_terrain(las, res = 1, algorithm = kriging(k=10)) #res is in meters, use classification_csf if yoo dont trust your original classification
+plot_dtm3d(dtm_kriging_k10)
+#dtm_kriging k=150
+dtm_kriging_k150<-rasterize_terrain(las, res = 1, algorithm = kriging(k=150)) #res is in meters, use classification_csf if yoo dont trust your original classification
+plot_dtm3d(dtm_kriging_k150)
+
