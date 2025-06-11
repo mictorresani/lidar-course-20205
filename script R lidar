@@ -544,7 +544,7 @@ plot(st_geometry(tree_top_function), add=TRUE, pch=3)
 #exercise 8
 #load the area2
 #create a nlas_filtered (with filter 0, 45) in the area 2
-#locate trees using  the f function setting height seq(0,45,5)
+#locate trees using  the f function 
 
 
 
